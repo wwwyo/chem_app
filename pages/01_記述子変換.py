@@ -11,8 +11,7 @@ from components.DownloadLink import DownloadLink
 st.title('記述子変換')
 
 st.subheader('1. csvアップロード')
-csv = st.file_uploader(label='', type='csv',
-                       label_visibility='hidden', key='csv')
+csv = st.file_uploader(label='csv', type='csv', label_visibility='hidden', key='csv')
 df = pd.DataFrame()
 if (csv):
     df = pd.read_csv(csv)

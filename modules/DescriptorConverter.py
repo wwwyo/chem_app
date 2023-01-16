@@ -4,7 +4,6 @@ from typing import List
 import pandas as pd
 from rdkit import Chem
 from enum import auto, Enum
-import math
 sys.path.append(str(Path(__file__).resolve()))
 from modules.Fingerprints.Fingerprints import Converter
 
