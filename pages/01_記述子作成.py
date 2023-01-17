@@ -8,7 +8,7 @@ from modules.DescriptorConverter import DescriptorConverter, Methods
 from components.DownloadLink import DownloadLink
 
 
-st.title('記述子変換')
+st.title('記述子作成')
 
 st.subheader('1. csvアップロード')
 csv = st.file_uploader(label='csv', type='csv', label_visibility='hidden', key='csv')
@@ -25,8 +25,7 @@ columns = st.multiselect(
     options=(df.columns), default=[]
 )
 
-
-st.subheader('3. 記述子を選択')
+st.subheader('3. フィンガープリントを選択')
 methods = st.multiselect(
     key='methods', label='', label_visibility='hidden', options=Methods.get_values()
 )

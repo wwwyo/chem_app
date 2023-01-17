@@ -1,7 +1,3 @@
-# 空白のデータ削除
-# 手動削除
-# カテゴリ値変換
-
 import streamlit as st
 import pandas as pd
 import sys
