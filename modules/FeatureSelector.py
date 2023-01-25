@@ -15,6 +15,9 @@ class Methods(Enum):
     @classmethod
     def get_values(cls):
         return [i.value for i in cls]
+    
+    def get_value(self):
+        return self.value
 
 class FeatureSelector():
     def __init__(self, X: pd.DataFrame, y: pd.DataFrame, hidden_columns: List[str], methods: Methods) -> None:
