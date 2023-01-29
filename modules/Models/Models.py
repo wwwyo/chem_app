@@ -4,14 +4,19 @@ import pandas as pd
 import numpy as np
 from enum import Enum
 from sklearn.cross_decomposition import PLSRegression
-from sklearn.svm import SVR
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR, LinearSVR
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import GridSearchCV, train_test_split, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import KFold
 from sklearn.metrics import make_scorer, mean_absolute_error, mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.mixture import GaussianMixture
+from sklearn.cross_decomposition import PLSRegression as LWPLS_Model
+import lightgbm as lgb
+import xgboost as xgb
 
 
 class ModelInterface(metaclass=abc.ABCMeta):
@@ -35,41 +40,144 @@ class OLS(ModelInterface):
 
 class PLS(ModelInterface):
     param_grid = {
-        'n_components': [2, 3, 4, 5, 6],
-        'scale':[True, False],
-        'max_iter': [500, 1000, 2000]
+        'n_components': range(5,31),
+        'max_iter': [1000, 2000]
     }
     
     def new(self, **kwargs):
         return PLSRegression(**kwargs)
 
-class SVR(ModelInterface):
+class LWPLS(ModelInterface):
     param_grid = {
-        'C': [0.1, 1, 10],
-        'gamma': [0.001, 0.01, 0.1]
+        'n_components': np.arange(5, 31),
+        'scale': [2**i for i in range(-9, 6)]}
+
+    def new(self, **kwargs):
+        return LWPLS_Model(**kwargs)
+
+class RR(ModelInterface):
+    """
+    L2正則化
+    """
+    param_grid = {
+        'alpha': np.power(2.0, np.arange(-15, 10)).tolist()
+    }
+    
+    def new(self, **kwargs):
+        return Ridge(**kwargs)
+    
+class LR(ModelInterface):
+    """
+    L1正則化
+    """
+    param_grid = {
+        'alpha': np.power(2.0, np.arange(-15, 0)).tolist()
+    }
+
+    def new(self, **kwargs):
+        return Lasso(**kwargs)
+
+class EN(ModelInterface):
+    """
+    Elastic Net
+    L1 + L2正則化
+    """
+    param_grid = {
+        'alpha': np.power(2.0, np.arange(-15, 0)).tolist(),
+        'l1_ratio': np.arange(0.01, 1.01, 0.01).tolist(),
+    }
+
+    def new(self, **kwargs):
+        return ElasticNet(**kwargs)
+
+class LSVR(ModelInterface):
+    param_grid = {
+        'epsilon':  np.power(2.0, np.arange(-10, 0)).tolist(),
+        'C': np.power(2.0, np.arange(-5, 5)).tolist(),
+    }
+
+    def new(self, **kwargs):
+        return LinearSVR(**kwargs)
+
+class NSVR(ModelInterface):
+    param_grid = {
+        'C': np.power(2.0, np.arange(-5, 10)).tolist(),
+        'epsilon': np.power(2.0, np.arange(-10, 0)).tolist(),
+        'gamma': np.power(2.0, np.arange(-20, 11)).tolist(),
     }
 
     def new(self,**kwargs):
         return SVR(**kwargs)
 
+class DT(ModelInterface):
+    param_grid = {
+        'max_depth': range(2, 31),
+        'min_samples_leaf': [3]
+    }
+
+    def new(self,**kwargs):
+        return DecisionTreeRegressor(**kwargs)
+
 class RF(ModelInterface):
     param_grid = {
-        'n_estimators': [50, 100, 200],
-        'max_depth': [None, 5, 10],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['auto', 'sqrt', 'log2']
+        'n_estimators': [500],
+        'max_features': [0.1 * i for i in range(1, 11)]
     }
 
     def new(self,**kwargs):
         return RandomForestRegressor(**kwargs)
 
+class GBDT(ModelInterface):
+    param_grid = {
+        'n_estimators': [500],
+        'max_features': [0.1 * i for i in range(1, 11)]
+    }
+
+    def new(self, **kwargs):
+        return GradientBoostingRegressor(**kwargs)
+
+class XGB(ModelInterface):
+    param_grid = {
+        'n_estimators': [500],
+        'max_features': [0.1 * i for i in range(1, 11)]
+    }
+
+    def new(self, **kwargs):
+        return xgb.XGBRegressor(**kwargs)
+
+class LGB(ModelInterface):
+    param_grid = {
+        'n_estimators': [500],
+        'max_features': [0.1 * i for i in range(1, 11)]
+    }
+
+    def new(self, **kwargs):
+        return lgb.LGBMRegressor(**kwargs)
+
+class GMR(ModelInterface):
+    param_grid = {
+        'n_components': range(1,31),
+        'covariance_type': ['full', 'tied', 'diag', 'spherical']
+    }
+
+    def new(self,**kwargs):
+        return GaussianMixture(**kwargs)
+
 class ModelList(Enum):
     OLS = OLS()
     PLS = PLS()
-    SVR = SVR()
-    RandomForest = RF()
-    # XGBoost = auto()
+    LWPLS = LWPLS()
+    Ridge = RR()
+    Lasso = LR()
+    EN = EN()
+    LSVR = LSVR()
+    NSVR = NSVR()
+    DT = DT()
+    RF = RF()
+    GBDT = GBDT()
+    XGB = XGB()
+    LGB = LGB()
+    GMR = GMR()
 
     @classmethod
     def get_keys(cls) -> List[str]:
@@ -126,5 +234,3 @@ class ModelBuilder():
             'y_predict': y_predict,
         }
         return cv_results
-    
-    
