@@ -148,7 +148,13 @@ class XGB(ModelInterface):
     IS_SCALING = False
     param_grid = {
         'n_estimators': [500],
-        'max_features': [0.1 * i for i in range(1, 11)]
+        'reg_alpha': [0, 0.003, 0.1],
+        # 'reg_lambda': [0.0001, 0.1],
+        # 'num_leaves': [2, 3, 4, 6],
+        'colsample_bytree': [0.4, 0.7, 1.0],
+        'subsample': [0.4, 1.0],
+        'subsample_freq': [0, 7],
+        'min_child_samples': [2, 5, 10]
     }
 
     def new(self, **kwargs):
@@ -158,7 +164,13 @@ class LGB(ModelInterface):
     IS_SCALING = False
     param_grid = {
         'n_estimators': [500],
-        'max_features': [0.1 * i for i in range(1, 11)]
+        'reg_alpha': [0, 0.003, 0.1],
+        'reg_lambda': [0.0001, 0.1],
+        'num_leaves': [2, 3, 4, 6],
+        'colsample_bytree': [0.4, 0.7, 1.0],
+        'subsample': [0.4, 1.0],
+        'subsample_freq': [0, 7],
+        'min_child_samples': [2, 5, 10]
     }
 
     def new(self, **kwargs):
