@@ -36,6 +36,7 @@ if (csv):
     )
 
     isDCV = st.checkbox(label='DCVを使用するか？', key='isDCV', value=True)
+    preprocessing = st.checkbox(label='特徴量選択を行うか？', key='preprocessing', value=True)
 
     Divider.render()
 
@@ -43,7 +44,7 @@ if (csv):
     if clicked:
         for model in models:
             st.subheader(f'{model}の結果')
-            results = ModelSearcher(df, target, model, isDCV).exec()
+            results = ModelSearcher(df, target, model, isDCV, preprocessing).exec()
             col1, col2 = st.columns(2)
             if isDCV:
                 

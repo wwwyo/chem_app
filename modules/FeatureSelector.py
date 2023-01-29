@@ -2,7 +2,6 @@ from enum import Enum
 import pandas as pd
 import numpy as np
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
 from boruta import BorutaPy
 from typing import List
@@ -35,11 +34,15 @@ class FeatureSelector():
         return result_df
 
     def removeVariance(self) -> None:
-        # ベルヌーイ分布に基づく分散の閾値は0.16
-        select = VarianceThreshold(threshold=(.8 * (1 - .8)))
+        select = self.getVarianceThreshold()
         select.fit_transform(self.X.values)
         selected_columns = self.X.columns[select.get_support()]
         self.X = pd.DataFrame(self.X[selected_columns], columns=selected_columns)
+
+    @staticmethod
+    def getVarianceThreshold() -> VarianceThreshold:
+        # ベルヌーイ分布に基づく分散の閾値は0.16
+        return VarianceThreshold(threshold=(.8 * (1 - .8)))
 
     def removeHighCorr(self) -> None:
         threshold = 0.95
@@ -84,19 +87,19 @@ class FeatureSelector():
         self.X = self.X[df_corr.columns]
         
     def boruta(self):
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(self.X)
-        corr_list = []
-        for _ in range(10000):
-            shadow_features = np.random.rand(X_scaled.shape[0]).T
-            corr = np.corrcoef(X_scaled, shadow_features, rowvar=False)[-1]
-            corr = abs(corr[corr < 0.95])
-            corr_list.append(corr.max())
-
-        corr_array = np.array(corr_list)
-        perc = 100 * (1-corr_array.max())
-
         # RandomForestRegressorでBorutaを実行
+        boruta_selector = self.getBoruta()
+        boruta_selector.fit(self.X.values, self.y.values)
+
+        # 選択された特徴量を確認
+        selected = boruta_selector.support_
+        print(f'選択された特徴量の数: {np.sum(selected)}')
+        print(self.X.columns[selected])
+
+        self.X = self.X[self.X.columns[selected]]
+
+    @staticmethod
+    def getBoruta() -> BorutaPy:
         rf = RandomForestRegressor(n_jobs=-1, max_depth=5)
         boruta_selector = BorutaPy(
             rf,
@@ -104,14 +107,7 @@ class FeatureSelector():
             verbose=2,
             alpha=0.05,    # 有意水準
             max_iter=100,  # 試行回数
-            perc=perc,     # ランダム生成変数の重要度の何％を基準とするか
-            random_state=1
+            perc=70,       # ランダム生成変数の重要度の何％を基準とするか。70~80が良さそう
+            random_state=42
         )
-        boruta_selector.fit(X_scaled, self.y.values)
-
-        # 選択された特徴量を確認
-        selected = boruta_selector.support_
-        print('選択された特徴量の数: %d' % np.sum(selected))
-        print(self.X.columns[selected])
-
-        self.X = self.X[self.X.columns[selected]]
+        return boruta_selector

@@ -17,9 +17,14 @@ from sklearn.mixture import GaussianMixture
 from sklearn.cross_decomposition import PLSRegression as LWPLS_Model
 import lightgbm as lgb
 import xgboost as xgb
-
+# 親のmodule群をimportできるように
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from modules.FeatureSelector import FeatureSelector
 
 class ModelInterface(metaclass=abc.ABCMeta):
+    IS_SCALING = True
     PREFIX = 'model__'
     param_grid = {}
     
@@ -110,6 +115,7 @@ class NSVR(ModelInterface):
         return SVR(**kwargs)
 
 class DT(ModelInterface):
+    IS_SCALING = False
     param_grid = {
         'max_depth': range(2, 31),
         'min_samples_leaf': [3]
@@ -119,6 +125,7 @@ class DT(ModelInterface):
         return DecisionTreeRegressor(**kwargs)
 
 class RF(ModelInterface):
+    IS_SCALING = False
     param_grid = {
         'n_estimators': [500],
         'max_features': [0.1 * i for i in range(1, 11)]
@@ -128,6 +135,7 @@ class RF(ModelInterface):
         return RandomForestRegressor(**kwargs)
 
 class GBDT(ModelInterface):
+    IS_SCALING = False
     param_grid = {
         'n_estimators': [500],
         'max_features': [0.1 * i for i in range(1, 11)]
@@ -137,6 +145,7 @@ class GBDT(ModelInterface):
         return GradientBoostingRegressor(**kwargs)
 
 class XGB(ModelInterface):
+    IS_SCALING = False
     param_grid = {
         'n_estimators': [500],
         'max_features': [0.1 * i for i in range(1, 11)]
@@ -146,6 +155,7 @@ class XGB(ModelInterface):
         return xgb.XGBRegressor(**kwargs)
 
 class LGB(ModelInterface):
+    IS_SCALING = False
     param_grid = {
         'n_estimators': [500],
         'max_features': [0.1 * i for i in range(1, 11)]
@@ -184,7 +194,7 @@ class ModelList(Enum):
         return [model.name for model in cls]
 
 class ModelBuilder():
-    def __init__(self, df: pd.DataFrame, target: str, model_wrapper:ModelList):
+    def __init__(self, df: pd.DataFrame, target: str, model_wrapper:ModelList, preprocessing: bool):
         self.X = df.drop(columns=target)
         self.y = df[target]
 
@@ -194,17 +204,18 @@ class ModelBuilder():
         self.y_train = y_train
         self.y_test = y_test
         self.model_wrapper = model_wrapper
+        self.preprocessing = preprocessing
 
     def cv(self):
         model = self.model_wrapper.new()
-        pipe = Pipeline(steps=[('model', model)])
+        pipe = self._getPipe()
         kf = KFold(n_splits=5, shuffle=True, random_state=0)
         grid_search = GridSearchCV(pipe, model.get_param_grid(), cv=kf)
         grid_search.fit(self.X_train, self.y_train)
         return grid_search.best_params_
 
     def dcv(self):
-        pipe = Pipeline(steps=[('scaler', StandardScaler()),('model', self.model_wrapper.new())])
+        pipe = self._getPipe()
         kf = KFold(n_splits=5, shuffle=True, random_state=0)
         grid_search = GridSearchCV(pipe, self.model_wrapper.get_param_grid(), cv=kf, n_jobs=-1)
         cv_results = cross_validate(grid_search, self.X, self.y, cv=5, return_train_score=True,
@@ -234,3 +245,17 @@ class ModelBuilder():
             'y_predict': y_predict,
         }
         return cv_results
+
+    def _getPipe(self)->Pipeline:
+        steps = []
+        print(self.model_wrapper)
+        if self.model_wrapper.IS_SCALING:
+            print('scaling!!')
+            steps.append(('scaler', StandardScaler()))
+        if self.preprocessing:
+            print('preprocessing!!')
+            steps.append(('remove_variance', FeatureSelector.getVarianceThreshold()))
+            steps.append(('select_boruta', FeatureSelector.getBoruta()))
+
+        steps.append(('model', self.model_wrapper.new()))
+        return Pipeline(steps=steps)
