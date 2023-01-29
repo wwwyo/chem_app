@@ -1,5 +1,5 @@
 import abc
-from typing import List
+from typing import List, Dict, Any
 import pandas as pd
 import numpy as np
 from enum import Enum
@@ -199,20 +199,17 @@ class ModelBuilder():
         self.y = df[target]
 
         X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
-        self.X_train = X_train
-        self.X_test = X_test
-        self.y_train = y_train
-        self.y_test = y_test
+        if preprocessing:
+            print('preprocessing!!')
+            pipeline = Pipeline(steps=[('remove_variance', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta())])
+            self.X_train = pipeline.fit_transform(X_train, y_train)
+            self.X_test = pipeline.transform(X_test)
+        else:
+            self.X_train = X_train
+            self.X_test = X_test
+        self.y_train = y_train.values
+        self.y_test = y_test.values
         self.model_wrapper = model_wrapper
-        self.preprocessing = preprocessing
-
-    def cv(self):
-        model = self.model_wrapper.new()
-        pipe = self._getPipe()
-        kf = KFold(n_splits=5, shuffle=True, random_state=0)
-        grid_search = GridSearchCV(pipe, model.get_param_grid(), cv=kf)
-        grid_search.fit(self.X_train, self.y_train)
-        return grid_search.best_params_
 
     def dcv(self):
         pipe = self._getPipe()
@@ -232,29 +229,45 @@ class ModelBuilder():
             "train_rmse": np.sqrt(cv_results['train_rmse'].mean()),
         }
 
-    def predict(self, best_params):
+    def predict(self, best_params = None):
         if not best_params:
-            best_params = self.cv(self.X_train, self.y_train)
+            best_params = self._cv()
+            
         model = self.model_wrapper.new(**best_params).fit(self.X_train, self.y_train)
-        y_predict = model.predict(self.X_test)
+        y_predict_train = model.predict(self.X_train).flatten()
+        y_predict = model.predict(self.X_test).flatten()
+
         cv_results = {
-            'r2': r2_score(self.y_test, self.y_predict),
-            'rmse': np.sqrt(mean_squared_error(self.y_test, self.y_predict)),
-            'mae': mean_absolute_error(self.y_test, self.y_predict),
+            'train_r2': r2_score(self.y_train, y_predict_train),
+            'train_rmse': np.sqrt(mean_squared_error(self.y_train, y_predict_train)),
+            'train_mae': mean_absolute_error(self.y_train, y_predict_train),
+            'y_predict_train': y_predict_train,
+            'y_train': self.y_train,
+            'test_r2': r2_score(self.y_test, y_predict),
+            'test_rmse': np.sqrt(mean_squared_error(self.y_test, y_predict)),
+            'test_mae': mean_absolute_error(self.y_test, y_predict),
             'best_params': best_params,
             'y_predict': y_predict,
+            'y_test': self.y_test,
         }
         return cv_results
 
+    def _cv(self):
+        pipe = self._getPipe()
+        kf = KFold(n_splits=5, shuffle=True, random_state=0)
+        grid_search = GridSearchCV(pipe, self.model_wrapper.get_param_grid(), cv=kf)
+        grid_search.fit(self.X_train, self.y_train)
+        best_params = grid_search.best_params_
+        return self._removePrefix(best_params)
+
     def _getPipe(self)->Pipeline:
         steps = []
-        if self.preprocessing:
-            print('preprocessing!!')
-            steps.append(('remove_variance', FeatureSelector.getVarianceThreshold()))
-            steps.append(('select_boruta', FeatureSelector.getBoruta()))
         if self.model_wrapper.IS_SCALING:
             print('scaling!!')
             steps.append(('scaler', StandardScaler()))
 
         steps.append(('model', self.model_wrapper.new()))
         return Pipeline(steps=steps)
+    
+    def _removePrefix(self, params: Dict[str, Any])->Dict[str, Any]:
+        return {key.split('__')[1]: value for key, value in params.items()}
