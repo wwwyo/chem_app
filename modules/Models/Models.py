@@ -11,20 +11,33 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import KFold
 from sklearn.metrics import make_scorer, mean_absolute_error, mean_squared_error, r2_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
 
 
 class ModelInterface(metaclass=abc.ABCMeta):
+    PREFIX = 'model__'
     param_grid = {}
+    
+    def get_param_grid(self):
+        results = {}
+        for key, value in self.param_grid.items():
+            results[f'{self.PREFIX}{key}'] = value
+        return results
 
     def new(cls, **kwargs):
         pass
 
+class OLS(ModelInterface):
+    param_grid = {}
+
+    def new(self, **kwargs):
+        return LinearRegression(**kwargs)
 
 class PLS(ModelInterface):
     param_grid = {
-        'model__n_components': [2, 3, 4, 5, 6],
-        'model__scale':[True, False],
-        'model__max_iter': [500, 1000, 2000]
+        'n_components': [2, 3, 4, 5, 6],
+        'scale':[True, False],
+        'max_iter': [500, 1000, 2000]
     }
     
     def new(self, **kwargs):
@@ -32,10 +45,10 @@ class PLS(ModelInterface):
 
 class SVR(ModelInterface):
     param_grid = {
-        'model__C': [0.1, 1, 10],
-        'model__gamma': [0.001, 0.01, 0.1]
+        'C': [0.1, 1, 10],
+        'gamma': [0.001, 0.01, 0.1]
     }
-    
+
     def new(self,**kwargs):
         return SVR(**kwargs)
 
@@ -52,6 +65,7 @@ class RF(ModelInterface):
         return RandomForestRegressor(**kwargs)
 
 class ModelList(Enum):
+    OLS = OLS()
     PLS = PLS()
     SVR = SVR()
     RandomForest = RF()
@@ -77,14 +91,14 @@ class ModelBuilder():
         model = self.model_wrapper.new()
         pipe = Pipeline(steps=[('model', model)])
         kf = KFold(n_splits=5, shuffle=True, random_state=0)
-        grid_search = GridSearchCV(pipe, model.param_grid, cv=kf)
+        grid_search = GridSearchCV(pipe, model.get_param_grid(), cv=kf)
         grid_search.fit(self.X_train, self.y_train)
         return grid_search.best_params_
 
     def dcv(self):
         pipe = Pipeline(steps=[('scaler', StandardScaler()),('model', self.model_wrapper.new())])
         kf = KFold(n_splits=5, shuffle=True, random_state=0)
-        grid_search = GridSearchCV(pipe, self.model_wrapper.param_grid, cv=kf, n_jobs=-1)
+        grid_search = GridSearchCV(pipe, self.model_wrapper.get_param_grid(), cv=kf, n_jobs=-1)
         cv_results = cross_validate(grid_search, self.X, self.y, cv=5, return_train_score=True,
                                     scoring={'r2': make_scorer(r2_score), 
                                             'mae': make_scorer(mean_absolute_error), 

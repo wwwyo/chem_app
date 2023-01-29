@@ -30,9 +30,9 @@ if (csv):
     
     st.subheader('3. モデルを選択')
     models = st.multiselect(
-      key='models', label='models', label_visibility='hidden',
-      options=ModelList.get_keys(),
-      default=[]
+        key='models', label='models', label_visibility='hidden',
+        options=ModelList.get_keys(),
+        default=[]
     )
 
     isDCV = st.checkbox(label='DCVを使用するか？', key='isDCV', value=True)
@@ -42,10 +42,11 @@ if (csv):
     clicked = st.button(label='モデルを探索する', type='primary', disabled=(csv == None))
     if clicked:
         for model in models:
+            st.subheader(f'{model}の結果')
             results = ModelSearcher(df, target, model, isDCV).exec()
             col1, col2 = st.columns(2)
-            st.subheader(f'{model}の結果')
             if isDCV:
+                
                 with col1:
                     st.write(f'トレーニングスコア')
                     st.write(f'r2：{results["train_r2"]}')
@@ -57,4 +58,4 @@ if (csv):
                     st.write(f'mae：{results["test_mae"]}')
                     st.write(f'rmse：{results["test_rmse"]}')
             else:
-              st.write(f'{model} {results}')
+                st.write(f'{model} {results}')
