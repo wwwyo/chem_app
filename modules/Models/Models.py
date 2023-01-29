@@ -153,8 +153,6 @@ class XGB(ModelInterface):
         # 'num_leaves': [2, 3, 4, 6],
         'colsample_bytree': [0.4, 0.7, 1.0],
         'subsample': [0.4, 1.0],
-        'subsample_freq': [0, 7],
-        'min_child_samples': [2, 5, 10]
     }
 
     def new(self, **kwargs):
