@@ -20,6 +20,7 @@ Jinja2==3.1.2
 joblib==1.2.0
 jsonschema==4.17.3
 kiwisolver==1.4.4
+lightgbm==3.3.5
 MarkupSafe==2.1.1
 matplotlib==3.6.3
 mordred==1.2.0
@@ -60,4 +61,5 @@ tzlocal==4.2
 urllib3==1.26.14
 validators==0.20.0
 wheel==0.37.1
+xgboost==1.7.3
 zipp==3.11.0
