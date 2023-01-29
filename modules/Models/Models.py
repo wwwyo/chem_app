@@ -248,14 +248,13 @@ class ModelBuilder():
 
     def _getPipe(self)->Pipeline:
         steps = []
-        print(self.model_wrapper)
-        if self.model_wrapper.IS_SCALING:
-            print('scaling!!')
-            steps.append(('scaler', StandardScaler()))
         if self.preprocessing:
             print('preprocessing!!')
             steps.append(('remove_variance', FeatureSelector.getVarianceThreshold()))
             steps.append(('select_boruta', FeatureSelector.getBoruta()))
+        if self.model_wrapper.IS_SCALING:
+            print('scaling!!')
+            steps.append(('scaler', StandardScaler()))
 
         steps.append(('model', self.model_wrapper.new()))
         return Pipeline(steps=steps)
