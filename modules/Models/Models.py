@@ -242,10 +242,11 @@ class ModelBuilder():
     def predict(self, best_params = None):
         if not best_params:
             best_params = self._cv()
-            
-        model = self.model_wrapper.new(**best_params).fit(self.X_train, self.y_train)
-        y_predict_train = model.predict(self.X_train).flatten()
-        y_predict = model.predict(self.X_test).flatten()
+
+        pipe = self._getPipe(best_params)
+        pipe.fit(self.X_train, self.y_train)
+        y_predict_train = pipe.predict(self.X_train).flatten()
+        y_predict = pipe.predict(self.X_test).flatten()
 
         cv_results = {
             'train_r2': r2_score(self.y_train, y_predict_train),
@@ -270,14 +271,60 @@ class ModelBuilder():
         best_params = grid_search.best_params_
         return self._removePrefix(best_params)
 
-    def _getPipe(self)->Pipeline:
+    def _getPipe(self, best_params=None)->Pipeline:
         steps = []
         if self.model_wrapper.IS_SCALING:
             print('scaling!!')
             steps.append(('scaler', StandardScaler()))
 
-        steps.append(('model', self.model_wrapper.new()))
+        if best_params:
+            steps.append(('model', self.model_wrapper.new(**best_params)))
+        else:
+            steps.append(('model', self.model_wrapper.new()))
         return Pipeline(steps=steps)
     
     def _removePrefix(self, params: Dict[str, Any])->Dict[str, Any]:
         return {key.split('__')[1]: value for key, value in params.items()}
+
+class ModelRegression():
+    def __init__(self, X_train: pd.DataFrame, y_train: pd.DataFrame, test_df: pd.DataFrame, model_wrapper, preprocessing):
+        if preprocessing:
+            print('preprocessing!!')
+            pipeline = Pipeline(steps=[('remove_variance', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta())])
+            self.X_train = pipeline.fit_transform(X_train, y_train)
+            self.test_df = pipeline.transform(test_df)
+        else:
+            self.train_X = X_train
+            self.test_df = test_df
+        self.y_train = y_train
+        self.model_wrapper = model_wrapper
+        self.preprocessing = preprocessing
+
+    def predict(self, best_params = None):
+        if not best_params:
+            best_params = self._cv()
+
+        pipe = self._getPipe(**best_params)
+        pipe.fit(self.X_train, self.y_train)
+        y_predict = pd.Series(pipe.predict(self.test_df))
+        return pd.concat([self.test_df, y_predict], axis=1)
+
+    def _cv(self):
+        pipe = self._getPipe()
+        kf = KFold(n_splits=5, shuffle=True, random_state=0)
+        grid_search = GridSearchCV(pipe, self.model_wrapper.get_param_grid(), cv=kf)
+        grid_search.fit(self.X_train, self.y_train)
+        best_params = grid_search.best_params_
+        return self._removePrefix(best_params)
+
+    def _getPipe(self, best_params=None)->Pipeline:
+        steps = []
+        if self.model_wrapper.IS_SCALING:
+            print('scaling!!')
+            steps.append(('scaler', StandardScaler()))
+
+        if best_params:
+            steps.append(('model', self.model_wrapper.new(**best_params)))
+        else:
+            steps.append(('model', self.model_wrapper.new()))
+        return Pipeline(steps=steps)
