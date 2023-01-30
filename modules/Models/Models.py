@@ -294,7 +294,7 @@ class ModelRegression():
             self.X_train = pipeline.fit_transform(X_train, y_train)
             self.test_df = pipeline.transform(test_df)
         else:
-            self.train_X = X_train
+            self.X_train = X_train
             self.test_df = test_df
         self.y_train = y_train
         self.model_wrapper = model_wrapper
@@ -304,10 +304,11 @@ class ModelRegression():
         if not best_params:
             best_params = self._cv()
 
-        pipe = self._getPipe(**best_params)
+        pipe = self._getPipe(best_params)
         pipe.fit(self.X_train, self.y_train)
-        y_predict = pd.Series(pipe.predict(self.test_df))
-        return pd.concat([self.test_df, y_predict], axis=1)
+        y_predict = pd.Series(pipe.predict(self.test_df), name='y_predict')
+        results = pd.concat([y_predict,self.test_df, ], axis=1)
+        return results
 
     def _cv(self):
         pipe = self._getPipe()
@@ -328,3 +329,6 @@ class ModelRegression():
         else:
             steps.append(('model', self.model_wrapper.new()))
         return Pipeline(steps=steps)
+
+    def _removePrefix(self, params: Dict[str, Any])->Dict[str, Any]:
+        return {key.split('__')[1]: value for key, value in params.items()}
