@@ -22,6 +22,7 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from modules.FeatureSelector import FeatureSelector
+from modules.ApplicabilityDomain import ApplicabilityDomain
 
 class ModelInterface(metaclass=abc.ABCMeta):
     IS_SCALING = True
@@ -311,7 +312,10 @@ class ModelRegression():
         pipe.fit(self.X_train, self.y_train)
         y_predict = pd.Series(pipe.predict(self.test_df), name='y_predict')
 
-        results = pd.concat([y_predict, self.test_df], axis=1)
+        # ad
+        data_density_train, data_density_pred = self.ad()
+
+        results = pd.concat([y_predict, pd.Series(data_density_pred, name='ad'), self.test_df,], axis=1)
         return results
 
     def _cv(self):
@@ -327,7 +331,6 @@ class ModelRegression():
         if self.model_wrapper.IS_SCALING:
             print('scaling!!')
             steps.append(('scaler', StandardScaler()))
-
         if best_params:
             steps.append(('model', self.model_wrapper.new(**best_params)))
         else:
@@ -336,3 +339,12 @@ class ModelRegression():
 
     def _removePrefix(self, params: Dict[str, Any])->Dict[str, Any]:
         return {key.split('__')[1]: value for key, value in params.items()}
+
+    def ad(self):
+        AD = ApplicabilityDomain()
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(self.X_train)
+        AD.fit(X_scaled)
+        data_density_train = AD.decision_function(X_scaled)
+        data_density_pred = AD.decision_function(scaler.transform(self.test_df))
+        return [data_density_train, data_density_pred]
