@@ -290,9 +290,12 @@ class ModelRegression():
     def __init__(self, X_train: pd.DataFrame, y_train: pd.DataFrame, test_df: pd.DataFrame, model_wrapper, preprocessing):
         if preprocessing:
             print('preprocessing!!')
-            pipeline = Pipeline(steps=[('remove_variance', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta())])
-            self.X_train = pipeline.fit_transform(X_train, y_train)
-            self.test_df = pipeline.transform(test_df)
+            pipe = Pipeline(steps=[('variance_threshold', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta())])
+            pipe.fit(X_train, y_train)
+            variance_features = X_train.columns[pipe.named_steps['variance_threshold'].get_support()]
+            selected_features = variance_features[pipe.named_steps['select_boruta'].support_]
+            self.X_train = pd.DataFrame(pipe.transform(X_train), columns=selected_features)
+            self.test_df = pd.DataFrame(pipe.transform(test_df), columns=selected_features)
         else:
             self.X_train = X_train
             self.test_df = test_df
@@ -307,7 +310,8 @@ class ModelRegression():
         pipe = self._getPipe(best_params)
         pipe.fit(self.X_train, self.y_train)
         y_predict = pd.Series(pipe.predict(self.test_df), name='y_predict')
-        results = pd.concat([y_predict,self.test_df, ], axis=1)
+
+        results = pd.concat([y_predict, self.test_df], axis=1)
         return results
 
     def _cv(self):
