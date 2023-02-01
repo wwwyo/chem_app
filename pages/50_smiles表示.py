@@ -2,12 +2,12 @@ from pathlib import Path
 import sys
 import streamlit as st
 import pandas as pd
+from rdkit import Chem
+from rdkit.Chem.Draw import MolToImage, rdMolDraw2D
 # 親のmodule群をimportできるように
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from components.DownloadLink import DownloadLink
 from components import Divider
-from rdkit import Chem
-from rdkit.Chem import Draw
 
 st.title('smiles表示')
 
@@ -30,5 +30,5 @@ if (csv):
 
     for smiles in df[smiles_col]:
         mol = Chem.MolFromSmiles(smiles)
-        img = Draw.MolToImage(mol)
+        img = MolToImage(mol)
         st.image(img, caption=smiles,use_column_width=True)
