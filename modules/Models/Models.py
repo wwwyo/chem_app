@@ -308,7 +308,10 @@ class ModelRegression():
         # ad
         data_density_train, data_density_pred = self.ad()
 
-        results = pd.concat([y_predict, pd.Series(data_density_pred, name='ad'), self.test_df,], axis=1)
+        results = {
+            'df': pd.concat([y_predict, pd.Series(data_density_pred, name='ad'), self.test_df,], axis=1),
+            'train_size': self.X_train.shape,
+        }
         return results
 
     def _cv(self):

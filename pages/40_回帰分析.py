@@ -50,7 +50,9 @@ if (train_csv and test_csv):
     if clicked:
         st.subheader(f'{model}の結果')
         results = ModelRegressor(train_df, test_df, target, model, preprocessing).exec()
-        DownloadLink.display(results.to_csv(index=False), 'ダウンロード')
-        st.dataframe(results)
+        train_size = results['train_size']
+        st.write(f'train size: {train_size}')
+        DownloadLink.display(results['df'].to_csv(index=False), 'ダウンロード')
+        st.dataframe(results['df'])
 
 

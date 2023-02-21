@@ -12,6 +12,6 @@ class ModelRegressor():
         self.model_wrapper = ModelList[model].value
         self.preprocessing = preprocessing
 
-    def exec(self)->pd.DataFrame:
+    def exec(self):
         model = ModelRegression(self.train_X, self.train_y, self.test_df, self.model_wrapper, self.preprocessing)
         return model.predict()
