@@ -1,7 +1,7 @@
 import streamlit as st
 from components import Bg
 
-Bg.renderTop()
+Bg.render()
 st.markdown('''
 <h1 style='font-size: 64px; font-family:serif; text-align: right;margin-top:84px;'>Chemoinfo</h1>
 
