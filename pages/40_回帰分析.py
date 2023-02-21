@@ -51,7 +51,9 @@ if (train_csv and test_csv):
         st.subheader(f'{model}の結果')
         results = ModelRegressor(train_df, test_df, target, model, preprocessing).exec()
         train_size = results['train_size']
+        train_score = results['train_score']
         st.write(f'train size: {train_size}')
+        st.write(f'train score: {train_score}')
         DownloadLink.display(results['df'].to_csv(index=False), 'ダウンロード')
         st.dataframe(results['df'])
 

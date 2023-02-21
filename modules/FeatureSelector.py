@@ -99,7 +99,7 @@ class FeatureSelector():
         self.X = self.X[self.X.columns[selected]]
 
     @staticmethod
-    def getBoruta() -> BorutaPy:
+    def getBoruta(perc=70) -> BorutaPy:
         rf = RandomForestRegressor(n_jobs=-1, max_depth=5)
         boruta_selector = BorutaPy(
             rf,
@@ -107,7 +107,7 @@ class FeatureSelector():
             verbose=2,
             alpha=0.05,    # 有意水準
             max_iter=100,  # 試行回数
-            perc=70,       # ランダム生成変数の重要度の何％を基準とするか。70~80が良さそう
+            perc=perc,       # ランダム生成変数の重要度の何％を基準とするか。70~80が良さそう
             random_state=42
         )
         return boruta_selector

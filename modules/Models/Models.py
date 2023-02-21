@@ -284,7 +284,7 @@ class ModelRegression():
     def __init__(self, X_train: pd.DataFrame, y_train: pd.DataFrame, test_df: pd.DataFrame, model_wrapper, preprocessing):
         if preprocessing:
             print('preprocessing!!')
-            pipe = Pipeline(steps=[('variance_threshold', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta())])
+            pipe = Pipeline(steps=[('variance_threshold', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta(40))])
             pipe.fit(X_train, y_train)
             variance_features = X_train.columns[pipe.named_steps['variance_threshold'].get_support()]
             selected_features = variance_features[pipe.named_steps['select_boruta'].support_]
@@ -303,6 +303,7 @@ class ModelRegression():
 
         pipe = self._getPipe(best_params)
         pipe.fit(self.X_train, self.y_train)
+        train_score = pipe.score(self.X_train, self.y_train)
         y_predict = pd.Series(pipe.predict(self.test_df), name='y_predict')
 
         # ad
@@ -311,6 +312,7 @@ class ModelRegression():
         results = {
             'df': pd.concat([y_predict, pd.Series(data_density_pred, name='ad'), self.test_df,], axis=1),
             'train_size': self.X_train.shape,
+            'train_score': train_score,
         }
         return results
 
