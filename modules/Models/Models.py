@@ -205,19 +205,12 @@ class ModelList(Enum):
         return [model.name for model in cls]
 
 class ModelBuilder():
-    def __init__(self, df: pd.DataFrame, target: str, model_wrapper:ModelList, preprocessing: bool):
-        self.X = df.drop(columns=target)
-        self.y = df[target]
+    def __init__(self, X: pd.DataFrame, y: pd.DataFrame, X_train: pd.DataFrame,  X_test: pd.DataFrame,  y_train: pd.DataFrame,  y_test: pd.DataFrame, model_wrapper: ModelList):
+        self.X = X
+        self.y = y
 
-        X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=42)
-        if preprocessing:
-            print('preprocessing!!')
-            pipeline = Pipeline(steps=[('remove_variance', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta())])
-            self.X_train = pipeline.fit_transform(X_train, y_train)
-            self.X_test = pipeline.transform(X_test)
-        else:
-            self.X_train = X_train
-            self.X_test = X_test
+        self.X_train = X_train
+        self.X_test = X_test
         self.y_train = y_train.values
         self.y_test = y_test.values
         self.model_wrapper = model_wrapper
