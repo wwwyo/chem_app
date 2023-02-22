@@ -284,7 +284,7 @@ class ModelRegression():
     def __init__(self, X_train: pd.DataFrame, y_train: pd.DataFrame, test_df: pd.DataFrame, model_wrapper, preprocessing):
         if preprocessing:
             print('preprocessing!!')
-            pipe = Pipeline(steps=[('variance_threshold', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta(40))])
+            pipe = Pipeline(steps=[('variance_threshold', FeatureSelector.getVarianceThreshold()), ('select_boruta', FeatureSelector.getBoruta(30))])
             pipe.fit(X_train, y_train)
             variance_features = X_train.columns[pipe.named_steps['variance_threshold'].get_support()]
             selected_features = variance_features[pipe.named_steps['select_boruta'].support_]
