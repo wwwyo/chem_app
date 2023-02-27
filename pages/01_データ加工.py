@@ -41,6 +41,11 @@ if csv:
 
     Divider.render()
 
+    is_rename = st.checkbox(label='カラム名を変換', key='rename')
+    if (is_rename):
+        converted_df.columns = [f'col_{i}' for i in range(len(converted_df.columns))]
+
+    Divider.render()
     # 表示
     st.subheader(f'加工済みデータ {converted_df.shape}')
     DownloadLink.display(converted_df.to_csv(index=False), '加工済み')
