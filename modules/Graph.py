@@ -18,7 +18,7 @@ class Graph():
         plt.plot([ymin - yrange * 0.01, ymax + yrange * 0.01], [ymin - yrange * 0.01, ymax + yrange * 0.01])
         plt.xlim(ymin - yrange * 0.01, ymax + yrange * 0.01)
         plt.ylim(ymin - yrange * 0.01, ymax + yrange * 0.01)
-        plt.xlabel('Real Y', fontsize=24)
+        plt.xlabel('Actual Y', fontsize=24)
         plt.ylabel('Predicted Y', fontsize=24)
         plt.title(self.title, fontsize=24)
         plt.tick_params(labelsize=16)
