@@ -43,9 +43,9 @@ class BayesianOptimization:
         return kernel
         
     def objective_function(self, params):
-        length_scale, noise, n_restarts_optimizer = params[0]
+        length_scale, noise, n_restarts_optimizer, alpha = params[0]
         kernel =  self.get_kernel(self.kernel_type, length_scale, noise)
-        model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer))
+        model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer), alpha=alpha)
 
         model.fit(self.X_train, self.y_train)
         y_pred = model.predict(self.X_test)
@@ -61,7 +61,8 @@ class BayesianOptimization:
         # GPyOptでベイズ最適化を設定
         bounds = [{'name': 'length_scale', 'type': 'continuous', 'domain': (0.1, 10)},
                   {'name': 'noise', 'type': 'continuous', 'domain': (1e-10, 1e-5)},
-                  {'name': 'n_restarts_optimizer', 'type': 'discrete', 'domain': (0, 20)}]
+                  {'name': 'n_restarts_optimizer', 'type': 'discrete', 'domain': (0, 20)},
+                  {'name': 'alpha', 'type': 'continuous', 'domain': (1e-10, 1e-5)}]
 
         optimizer = GPyOpt.methods.BayesianOptimization(f=self.objective_function, domain=bounds)
 
@@ -72,10 +73,10 @@ class BayesianOptimization:
         return best_params
 
     def predict_target(self, best_params):
-        length_scale, noise, n_restarts_optimizer = best_params
+        length_scale, noise, n_restarts_optimizer, alpha = best_params
 
-        kernel = self.get_kernel(self.kernel_type, length_scale, noise)
-        model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer))
+        kernel = self.get_kernel(self.kernel_type, length_scale, noise, alpha)
+        model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer), alpha=alpha)
         model.fit(self.X_train, self.y_train)
         result = model.predict(self.target_dataset, return_std=True)
         return pd.DataFrame(np.array(result).T, index=self.target_dataset.index, columns=[self.target_variable, '標準偏差'])
