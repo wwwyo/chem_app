@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
 from typing import List
-import GPy
 import GPyOpt
 from enum import Enum
 from sklearn.gaussian_process import GaussianProcessRegressor
-# from sklearn.gaussian_process.kernels import ConstantKernel as C, RBF, DotProduct, Matern
 from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct, WhiteKernel
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -15,12 +13,11 @@ class KernelList(Enum):
     rbf = 'rbf' # 放射基底関数カーネル（Radial basis function kernel, RBF kernel）と定数カーネル（Constant kernel）の積
     polynomial = 'polynomial' # 多項式カーネル
     matern = 'matern' # 入力空間でのデータ点間の距離に対して異なるスケールで類似度を測る
-    white = 'white'
+    white = 'white' # rbfにノイズを加えたもの
 
     @classmethod
     def get_keys(cls) -> List[str]:
         return [kernel.name for kernel in cls]
-
 
 class BayesianOptimization:
     def __init__(self, dataset: pd.DataFrame, target_variable: str, target_dataset: pd.DataFrame, kernel_type: KernelList, n_iter: int):
@@ -31,17 +28,23 @@ class BayesianOptimization:
         self.kernel_type = kernel_type
         self.n_iter = n_iter # 25 ~ 100
 
+    def get_kernel(self, kernel_type: KernelList, length_scale: float, noise=None):
+        if kernel_type == 'rbf':
+            kernel = RBF(length_scale=length_scale)
+        elif kernel_type == 'matern':
+            kernel = Matern(length_scale=length_scale)
+        elif kernel_type == 'polynomial':
+            degree = 2
+            kernel = (DotProduct(sigma_0=1.0) + 1.0) ** degree
+        elif kernel_type == 'white':
+            kernel = RBF(length_scale=length_scale) + WhiteKernel(noise_level=noise)
+        else:
+            raise Exception('kernel_type is not defined')
+        return kernel
+        
     def objective_function(self, params):
         length_scale, noise, n_restarts_optimizer = params[0]
-        if self.kernel_type == 'rbf':
-            kernel = RBF(length_scale=length_scale)
-        elif self.kernel_type == 'matern':
-            kernel = Matern(length_scale=length_scale)
-        elif self.kernel_type == 'polynomial':
-            kernel = DotProduct()
-        else:
-            kernel = RBF(length_scale=length_scale) + WhiteKernel(noise_level=noise)
-        
+        kernel =  self.get_kernel(self.kernel_type, length_scale, noise)
         model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer))
 
         model.fit(self.X_train, self.y_train)
@@ -67,20 +70,11 @@ class BayesianOptimization:
 
         best_params = optimizer.X[np.argmin(optimizer.Y)]
         return best_params
-        # best_parameters = optimizer.x_opt
-        # best_model = GaussianProcessRegressor(kernel=best_kernel, n_restarts_optimizer=9)
-        # best_model.fit(self.X_train, self.y_train)
 
     def predict_target(self, best_params):
         length_scale, noise, n_restarts_optimizer = best_params
-        if self.kernel_type == 'rbf':
-            kernel = RBF(length_scale=length_scale)
-        elif self.kernel_type == 'matern':
-            kernel = Matern(length_scale=length_scale)
-        elif self.kernel_type == 'polynomial':
-            kernel = Polynomial()
-        else:
-            kernel = RBF(length_scale=length_scale) + WhiteKernel(noise_level=noise)
+
+        kernel = self.get_kernel(self.kernel_type, length_scale, noise)
         model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer))
         model.fit(self.X_train, self.y_train)
         result = model.predict(self.target_dataset, return_std=True)

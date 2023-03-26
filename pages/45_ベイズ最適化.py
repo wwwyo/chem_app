@@ -44,8 +44,6 @@ if (train_csv and predicted_csv):
     st.subheader('5. イテレーションを設定')
     n_iter = st.number_input(label='イテレーション数', key='n_iter', value=50, min_value=1, max_value=100, step=25)
 
-    preprocessing = st.checkbox(label='特徴量選択を行うか？', key='preprocessing', value=True)
-
     Divider.render()
 
     clicked = st.button(label='ベイズ最適化を実行', type='primary', disabled=(predicted_csv == None))
