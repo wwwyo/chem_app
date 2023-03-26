@@ -50,10 +50,12 @@ if (train_csv and predicted_csv):
     if clicked:
         st.subheader(f'{kernel}の結果')
         bayesianOpt = BayesianOptimization(train_df, target, predicted_df, kernel, n_iter)
-        best_model = bayesianOpt.optimize()
-        st.write('best model is ')
-        st.write(best_model)
-        y_pred = bayesianOpt.predict_target(best_model)
+        best_param = bayesianOpt.optimize()
+        best_param_df = pd.DataFrame(best_param, index=['length_scale', 'noise', 'n_restarts_optimizer', 'alpha'])
+        best_param_df = best_param_df.style.format({0: '{:.2e}'})
+        st.write('best parameter is ')
+        st.dataframe(best_param_df)
+        y_pred = bayesianOpt.predict_target(best_param)
         DownloadLink.display(y_pred.to_csv(index=False), 'ダウンロード')
         st.dataframe(y_pred)
 

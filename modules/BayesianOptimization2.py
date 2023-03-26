@@ -45,6 +45,8 @@ class BayesianOptimization:
     def objective_function(self, params):
         length_scale, noise, n_restarts_optimizer, alpha = params[0]
         kernel =  self.get_kernel(self.kernel_type, length_scale, noise)
+
+        alpha = 1e-5 if self.kernel_type == 'polynomial' else alpha # 多項式カーネルの場合はエラーになるのでalphaを最大にする
         model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer), alpha=alpha)
 
         model.fit(self.X_train, self.y_train)
@@ -70,12 +72,14 @@ class BayesianOptimization:
         optimizer.run_optimization(max_iter=self.n_iter)
 
         best_params = optimizer.X[np.argmin(optimizer.Y)]
+        print(best_params)
         return best_params
 
     def predict_target(self, best_params):
         length_scale, noise, n_restarts_optimizer, alpha = best_params
 
-        kernel = self.get_kernel(self.kernel_type, length_scale, noise, alpha)
+        kernel = self.get_kernel(self.kernel_type, length_scale, noise)
+        alpha = 1e-5 if self.kernel_type == 'polynomial' else alpha # 多項式カーネルの場合はエラーになるのでalphaを最大にする
         model = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=int(n_restarts_optimizer), alpha=alpha)
         model.fit(self.X_train, self.y_train)
         result = model.predict(self.target_dataset, return_std=True)
