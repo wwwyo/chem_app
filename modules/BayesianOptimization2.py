@@ -72,7 +72,6 @@ class BayesianOptimization:
         optimizer.run_optimization(max_iter=self.n_iter)
 
         best_params = optimizer.X[np.argmin(optimizer.Y)]
-        print(best_params)
         return best_params
 
     def predict_target(self, best_params):
